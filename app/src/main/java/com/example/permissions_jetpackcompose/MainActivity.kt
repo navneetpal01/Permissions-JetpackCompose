@@ -1,8 +1,11 @@
 package com.example.permissions_jetpackcompose
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Bundle
+import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -52,8 +55,11 @@ class MainActivity : ComponentActivity() {
                     contract = ActivityResultContracts.RequestMultiplePermissions(),
                     onResult = { result ->
                         permissions.forEach { permission ->
-                            if (result[permission] == false){
-
+                            if (result[permission] == false) {
+                                if (!shouldShowRequestPermissionRationale(permission)) {
+                                    mainViewModel.updateLaunchAppSettings(true)
+                                }
+                                mainViewModel.updateShowDialog(true)
                             }
                         }
                     }
@@ -75,7 +81,7 @@ class MainActivity : ComponentActivity() {
                                     if (shouldShowRequestPermissionRationale(permission)) {
                                         mainViewModel.updateShowDialog(true)
                                     } else {
-
+                                        permissionResultActivityLauncher.launch(permissions)
                                     }
                                 }
                             }
@@ -83,8 +89,28 @@ class MainActivity : ComponentActivity() {
                     ) {
                         Text(text = "Request Permission")
                     }
+                }
 
-
+                if (showDialog) {
+                    PermissionDialog(
+                        onDismiss = {
+                            mainViewModel.updateShowDialog(false)
+                        },
+                        onConfirm = {
+                            mainViewModel.updateShowDialog(false)
+                            if (launchAppSettings) {
+                                Intent(
+                                    Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                                    Uri.fromParts("package", packageName, null)
+                                ).also {
+                                    startActivity(it)
+                                }
+                                mainViewModel.updateLaunchAppSettings(false)
+                            } else {
+                                permissionResultActivityLauncher.launch(permissions)
+                            }
+                        }
+                    )
                 }
 
             }
